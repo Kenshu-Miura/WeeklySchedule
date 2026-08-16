@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import Editor from './components/Editor'
 import ScheduleCard from './components/ScheduleCard'
+import ScaledPreview from './components/ScaledPreview'
 import { DEFAULT_ACCENT, MAX_DAYS, MAX_BLOCKS } from './constants'
 import { buildDates, toDateInputValue } from './utils/date'
 import { getFontEmbedCss } from './utils/fontEmbed'
@@ -45,6 +46,21 @@ function makeDefaultState() {
   }
 }
 
+// 画面幅が lg(1024px) 以上か（＝PCレイアウトか）を判定
+function useIsDesktop() {
+  const query = '(min-width: 1024px)'
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(query).matches,
+  )
+  useEffect(() => {
+    const mql = window.matchMedia(query)
+    const onChange = (e) => setIsDesktop(e.matches)
+    mql.addEventListener('change', onChange)
+    return () => mql.removeEventListener('change', onChange)
+  }, [])
+  return isDesktop
+}
+
 const STORAGE_KEY = 'stream-schedule-v1'
 
 // ブラウザ（localStorage）に保存した前回の入力を読み込む
@@ -79,6 +95,7 @@ export default function App() {
   }, [state, rows])
 
   const cardRef = useRef(null)
+  const isDesktop = useIsDesktop()
 
   const setState = (patch) => setStateRaw((prev) => ({ ...prev, ...patch }))
 
@@ -161,74 +178,94 @@ export default function App() {
     }
   }
 
+  // 操作パネルとプレビューは1つだけ定義し、PC/スマホどちらのレイアウトでも使い回す
+  const editorEl = (
+    <Editor
+      state={state}
+      setState={setState}
+      rows={rows}
+      updateRow={updateRow}
+      updateBlock={updateBlock}
+      addBlock={addBlock}
+      removeBlock={removeBlock}
+      dates={dates}
+      onAvatarUpload={handleAvatarUpload}
+    />
+  )
+
+  const cardEl = (
+    <ScheduleCard
+      ref={cardRef}
+      title={state.title}
+      titleFont={state.titleFont}
+      titleSpacing={state.titleSpacing}
+      titleColor={state.titleColor}
+      titleSize={state.titleSize}
+      titleOffsetX={state.titleOffsetX}
+      avatar={state.avatar}
+      avatarZoom={state.avatarZoom}
+      avatarX={state.avatarX}
+      avatarY={state.avatarY}
+      dates={dates}
+      rows={rows}
+    />
+  )
+
   return (
     <div className="min-h-full">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-bold text-slate-800">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3">
+          <h1 className="min-w-0 truncate text-base font-bold text-slate-800 sm:text-lg">
             🎬 配信スケジュールメーカー
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={handleReset}
-              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:bg-slate-50 sm:px-4 sm:text-sm"
             >
-              リセット ↺
+              リセット<span className="hidden sm:inline"> ↺</span>
             </button>
             <button
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="rounded-lg bg-rose-500 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-60"
+              className="rounded-lg bg-rose-500 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-60 sm:px-5 sm:text-sm"
             >
-              {exporting ? '書き出し中…' : 'PNG画像を保存 ⬇'}
+              {exporting ? '書き出し中…' : 'PNG保存 ⬇'}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 py-6 lg:grid-cols-[380px_1fr]">
-        {/* 左：編集パネル */}
-        <div className="lg:max-h-[calc(100vh-120px)] lg:overflow-y-auto lg:pr-1">
-          <Editor
-            state={state}
-            setState={setState}
-            rows={rows}
-            updateRow={updateRow}
-            updateBlock={updateBlock}
-            addBlock={addBlock}
-            removeBlock={removeBlock}
-            dates={dates}
-            onAvatarUpload={handleAvatarUpload}
-          />
-        </div>
-
-        {/* 右：プレビュー */}
-        <div className="flex justify-center">
-          <div className="w-full overflow-x-auto">
-            <div className="mx-auto w-fit rounded-xl bg-slate-200 p-4 shadow-inner">
-              <div className="shadow-xl">
-                <ScheduleCard
-                  ref={cardRef}
-                  title={state.title}
-                  titleFont={state.titleFont}
-                  titleSpacing={state.titleSpacing}
-                  titleColor={state.titleColor}
-                  titleSize={state.titleSize}
-                  titleOffsetX={state.titleOffsetX}
-                  avatar={state.avatar}
-                  avatarZoom={state.avatarZoom}
-                  avatarX={state.avatarX}
-                  avatarY={state.avatarY}
-                  dates={dates}
-                  rows={rows}
-                />
+      {isDesktop ? (
+        // ===== PC：左に操作パネル / 右にプレビュー（従来のまま） =====
+        <main className="mx-auto grid max-w-7xl grid-cols-[380px_1fr] gap-6 px-4 py-6">
+          <div className="max-h-[calc(100vh-120px)] overflow-y-auto pr-1">{editorEl}</div>
+          <div className="flex justify-center">
+            <div className="w-full overflow-x-auto">
+              <div className="mx-auto w-fit rounded-xl bg-slate-200 p-4 shadow-inner">
+                <div className="shadow-xl">{cardEl}</div>
               </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      ) : (
+        // ===== スマホ：上にプレビューを固定表示 / 下に操作パネル =====
+        <main className="px-3 py-3">
+          <div className="sticky top-0 z-20 -mx-3 mb-3 border-b border-slate-200 bg-slate-100/95 px-3 pb-2 pt-2 backdrop-blur">
+            <div className="mb-1 text-center text-[11px] font-bold text-slate-400">
+              プレビュー（操作するとすぐ反映されます）
+            </div>
+            <div className="rounded-lg bg-slate-200 p-2 shadow-inner">
+              <div className="shadow">
+                <ScaledPreview>{cardEl}</ScaledPreview>
+              </div>
+            </div>
+          </div>
+          <div>{editorEl}</div>
+        </main>
+      )}
     </div>
   )
 }
