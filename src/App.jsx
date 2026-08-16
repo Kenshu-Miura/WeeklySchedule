@@ -18,23 +18,13 @@ function makeBlock(sample = {}) {
   }
 }
 
-// 画像の見本に近いサンプル初期内容（自由に書き換え可能）
-const SAMPLE = [
-  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true, platforms: ['youtube'] },
-  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true, platforms: ['youtube', 'twitch'] },
-  { time: '21:00', content: 'ドラクエ10', note1: '（長時間の日！）', accent: true, platforms: ['twitch'] },
-  { time: '', content: 'メン限配信のみ', note1: '' },
-  { time: '', content: '未定', note1: '（配信やる予定ではあります！）' },
-  { time: '', content: 'メン限配信のみ', note1: '' },
-  { time: '19:00', content: 'フォートナイト', note1: '（長時間の日！）', platforms: ['youtube'] },
-]
-
 function makeDefaultRows() {
   return Array.from({ length: MAX_DAYS }, (_, i) => ({
     holiday: false,
     // 見本と同じ 4 色ローテーション（ピンク→グリーン→オレンジ→ローズ）
     colorIndex: i % 4,
-    blocks: [makeBlock(SAMPLE[i])],
+    // 初期値は空（時間・内容・補足・配信サイトすべて未入力）
+    blocks: [makeBlock()],
   }))
 }
 
