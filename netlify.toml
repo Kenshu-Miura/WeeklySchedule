@@ -1,0 +1,10 @@
+# Netlify のビルド設定
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA 用リダイレクト（今回は単一ページなので必須ではないが保険）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

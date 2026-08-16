@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: #f1f5f9;
+  font-family: 'Noto Sans JP', 'M PLUS Rounded 1c', sans-serif;
+}
+
+/* range スライダーの見た目調整 */
+input[type='range'] {
+  accent-color: #e0736f;
+}
