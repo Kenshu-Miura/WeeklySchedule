@@ -34,8 +34,8 @@ export default function App() {
     dayCount: 7,
     avatar: null,
     avatarZoom: 1,
-    avatarX: 50,
-    avatarY: 50,
+    avatarX: 0,
+    avatarY: 0,
     title: 'WEEK',
     titleFont: "'Poppins', sans-serif",
     titleSpacing: 8,
@@ -89,7 +89,7 @@ export default function App() {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = () => setState({ avatar: reader.result, avatarZoom: 1, avatarX: 50, avatarY: 50 })
+    reader.onload = () => setState({ avatar: reader.result, avatarZoom: 1, avatarX: 0, avatarY: 0 })
     reader.readAsDataURL(file)
   }
 

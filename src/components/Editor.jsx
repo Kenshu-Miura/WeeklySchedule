@@ -205,21 +205,24 @@ export default function Editor({
                 onChange={(e) => setState({ avatarZoom: Number(e.target.value) })}
               />
             </Field>
+            <p className="text-[11px] leading-tight text-slate-400">
+              ※ 位置調整はズームを上げると動かせる範囲が広がります
+            </p>
             <div className="grid grid-cols-2 gap-2">
-              <Field label={`左右位置：${s.avatarX}%`}>
+              <Field label={`左右位置：${s.avatarX}px`}>
                 <input
                   type="range"
-                  min={0}
+                  min={-100}
                   max={100}
                   value={s.avatarX}
                   className="w-full"
                   onChange={(e) => setState({ avatarX: Number(e.target.value) })}
                 />
               </Field>
-              <Field label={`上下位置：${s.avatarY}%`}>
+              <Field label={`上下位置：${s.avatarY}px`}>
                 <input
                   type="range"
-                  min={0}
+                  min={-100}
                   max={100}
                   value={s.avatarY}
                   className="w-full"

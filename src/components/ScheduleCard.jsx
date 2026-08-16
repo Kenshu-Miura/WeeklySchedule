@@ -129,15 +129,17 @@ const ScheduleCard = forwardRef(function ScheduleCard(
     >
       {/* ヘッダー：アイコン + タイトル */}
       <div className="mb-6 flex items-center gap-2">
-        <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full border-[3px] border-slate-800 bg-slate-100">
+        <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-[3px] border-slate-800 bg-slate-100">
           {avatar ? (
             <img
               src={avatar}
               alt="icon"
-              className="h-full w-full object-cover"
+              className="absolute left-1/2 top-1/2 max-w-none"
               style={{
-                transform: `scale(${avatarZoom})`,
-                objectPosition: `${avatarX}% ${avatarY}%`,
+                width: `${avatarZoom * 100}%`,
+                height: `${avatarZoom * 100}%`,
+                objectFit: 'cover',
+                transform: `translate(-50%, -50%) translate(${avatarX}px, ${avatarY}px)`,
               }}
             />
           ) : (
