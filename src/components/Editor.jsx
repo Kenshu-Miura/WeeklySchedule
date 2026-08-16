@@ -51,7 +51,6 @@ function BlockEditor({ block, rowIndex, blockIndex, blockCount, updateBlock, rem
           <Field label="配信時間">
             <input
               type="text"
-              placeholder="19:00"
               className={inputCls}
               value={block.time}
               onChange={(e) => updateBlock(rowIndex, blockIndex, { time: e.target.value })}
@@ -61,7 +60,6 @@ function BlockEditor({ block, rowIndex, blockIndex, blockCount, updateBlock, rem
             <Field label="配信内容">
               <input
                 type="text"
-                placeholder="ドラクエ10"
                 className={inputCls}
                 value={block.content}
                 onChange={(e) => updateBlock(rowIndex, blockIndex, { content: e.target.value })}
@@ -74,7 +72,6 @@ function BlockEditor({ block, rowIndex, blockIndex, blockCount, updateBlock, rem
           <Field label="補足1行目">
             <input
               type="text"
-              placeholder="（短め配信）"
               className={inputCls}
               value={block.note1}
               onChange={(e) => updateBlock(rowIndex, blockIndex, { note1: e.target.value })}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import Editor from './components/Editor'
 import ScheduleCard from './components/ScheduleCard'
@@ -28,8 +28,8 @@ function makeDefaultRows() {
   }))
 }
 
-export default function App() {
-  const [state, setStateRaw] = useState({
+function makeDefaultState() {
+  return {
     startDate: toDateInputValue(new Date()),
     dayCount: 7,
     avatar: null,
@@ -42,9 +42,41 @@ export default function App() {
     titleSize: 110,
     titleColor: DEFAULT_ACCENT,
     titleOffsetX: 0,
-  })
-  const [rows, setRows] = useState(makeDefaultRows)
+  }
+}
+
+const STORAGE_KEY = 'stream-schedule-v1'
+
+// ブラウザ（localStorage）に保存した前回の入力を読み込む
+function loadSaved() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data || typeof data !== 'object') return null
+    // 既定値とマージして、項目が欠けていても壊れないようにする
+    const state = { ...makeDefaultState(), ...(data.state ?? {}) }
+    const rows = Array.isArray(data.rows) && data.rows.length ? data.rows : makeDefaultRows()
+    return { state, rows }
+  } catch {
+    return null
+  }
+}
+
+export default function App() {
+  const saved = loadSaved()
+  const [state, setStateRaw] = useState(saved?.state ?? makeDefaultState())
+  const [rows, setRows] = useState(saved?.rows ?? makeDefaultRows())
   const [exporting, setExporting] = useState(false)
+
+  // 入力が変わるたびに localStorage へ自動保存
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, rows }))
+    } catch {
+      // 画像が大きすぎて容量超過した場合などは保存をスキップ（動作は継続）
+    }
+  }, [state, rows])
 
   const cardRef = useRef(null)
 
@@ -93,6 +125,17 @@ export default function App() {
     reader.readAsDataURL(file)
   }
 
+  const handleReset = () => {
+    if (!window.confirm('すべての入力を初期状態に戻します。よろしいですか？（元に戻せません）')) return
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // 無視
+    }
+    setStateRaw(makeDefaultState())
+    setRows(makeDefaultRows())
+  }
+
   const handleExport = async () => {
     if (!cardRef.current) return
     setExporting(true)
@@ -125,14 +168,23 @@ export default function App() {
           <h1 className="text-lg font-bold text-slate-800">
             🎬 配信スケジュールメーカー
           </h1>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={exporting}
-            className="rounded-lg bg-rose-500 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-60"
-          >
-            {exporting ? '書き出し中…' : 'PNG画像を保存 ⬇'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleReset}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm transition hover:bg-slate-50"
+            >
+              リセット ↺
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exporting}
+              className="rounded-lg bg-rose-500 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-rose-600 disabled:opacity-60"
+            >
+              {exporting ? '書き出し中…' : 'PNG画像を保存 ⬇'}
+            </button>
+          </div>
         </div>
       </header>
 
