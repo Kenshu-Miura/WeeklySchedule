@@ -25,3 +25,6 @@ export const DEFAULT_ACCENT = '#e0736f'
 export const WEEKDAY_JP = ['日', '月', '火', '水', '木', '金', '土']
 
 export const MAX_DAYS = 7
+
+// 1日あたりに登録できる配信ブロックの最大数
+export const MAX_BLOCKS = 3

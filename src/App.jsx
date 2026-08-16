@@ -2,32 +2,39 @@ import { useMemo, useRef, useState } from 'react'
 import { toPng } from 'html-to-image'
 import Editor from './components/Editor'
 import ScheduleCard from './components/ScheduleCard'
-import { DEFAULT_ACCENT, MAX_DAYS } from './constants'
+import { DEFAULT_ACCENT, MAX_DAYS, MAX_BLOCKS } from './constants'
 import { buildDates, toDateInputValue } from './utils/date'
 import { getFontEmbedCss } from './utils/fontEmbed'
 
+function makeBlock(sample = {}) {
+  return {
+    time: sample.time ?? '',
+    content: sample.content ?? '',
+    note1: sample.note1 ?? '',
+    note2: sample.note2 ?? '',
+    accent: sample.accent ?? false,
+    accentColor: DEFAULT_ACCENT,
+    platforms: sample.platforms ?? [],
+  }
+}
+
 // 画像の見本に近いサンプル初期内容（自由に書き換え可能）
 const SAMPLE = [
-  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true },
-  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true },
-  { time: '21:00', content: 'ドラクエ10', note1: '（長時間の日！）', accent: true },
+  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true, platforms: ['youtube'] },
+  { time: '19:00', content: 'ドラクエ10', note1: '（短め配信）', accent: true, platforms: ['youtube', 'twitch'] },
+  { time: '21:00', content: 'ドラクエ10', note1: '（長時間の日！）', accent: true, platforms: ['twitch'] },
   { time: '', content: 'メン限配信のみ', note1: '' },
   { time: '', content: '未定', note1: '（配信やる予定ではあります！）' },
   { time: '', content: 'メン限配信のみ', note1: '' },
-  { time: '19:00', content: 'フォートナイト', note1: '（長時間の日！）' },
+  { time: '19:00', content: 'フォートナイト', note1: '（長時間の日！）', platforms: ['youtube'] },
 ]
 
 function makeDefaultRows() {
   return Array.from({ length: MAX_DAYS }, (_, i) => ({
-    time: SAMPLE[i]?.time ?? '',
-    content: SAMPLE[i]?.content ?? '',
-    note1: SAMPLE[i]?.note1 ?? '',
-    note2: '',
     holiday: false,
-    accent: SAMPLE[i]?.accent ?? false,
-    accentColor: DEFAULT_ACCENT,
     // 見本と同じ 4 色ローテーション（ピンク→グリーン→オレンジ→ローズ）
     colorIndex: i % 4,
+    blocks: [makeBlock(SAMPLE[i])],
   }))
 }
 
@@ -44,6 +51,7 @@ export default function App() {
     titleSpacing: 8,
     titleSize: 110,
     titleColor: DEFAULT_ACCENT,
+    titleOffsetX: 0,
   })
   const [rows, setRows] = useState(makeDefaultRows)
   const [exporting, setExporting] = useState(false)
@@ -54,6 +62,33 @@ export default function App() {
 
   const updateRow = (index, patch) =>
     setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)))
+
+  const updateBlock = (rowIndex, blockIndex, patch) =>
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === rowIndex
+          ? { ...r, blocks: r.blocks.map((b, j) => (j === blockIndex ? { ...b, ...patch } : b)) }
+          : r,
+      ),
+    )
+
+  const addBlock = (rowIndex) =>
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === rowIndex && r.blocks.length < MAX_BLOCKS
+          ? { ...r, blocks: [...r.blocks, makeBlock()] }
+          : r,
+      ),
+    )
+
+  const removeBlock = (rowIndex, blockIndex) =>
+    setRows((prev) =>
+      prev.map((r, i) =>
+        i === rowIndex && r.blocks.length > 1
+          ? { ...r, blocks: r.blocks.filter((_, j) => j !== blockIndex) }
+          : r,
+      ),
+    )
 
   const dates = useMemo(
     () => buildDates(state.startDate, state.dayCount),
@@ -119,6 +154,9 @@ export default function App() {
             setState={setState}
             rows={rows}
             updateRow={updateRow}
+            updateBlock={updateBlock}
+            addBlock={addBlock}
+            removeBlock={removeBlock}
             dates={dates}
             onAvatarUpload={handleAvatarUpload}
           />
@@ -136,6 +174,7 @@ export default function App() {
                   titleSpacing={state.titleSpacing}
                   titleColor={state.titleColor}
                   titleSize={state.titleSize}
+                  titleOffsetX={state.titleOffsetX}
                   avatar={state.avatar}
                   avatarZoom={state.avatarZoom}
                   avatarX={state.avatarX}

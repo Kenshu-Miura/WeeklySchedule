@@ -1,5 +1,6 @@
-import { PALETTE, TITLE_FONTS, MAX_DAYS } from '../constants'
-import { toDateInputValue, buildDates, formatDayLabel } from '../utils/date'
+import { PALETTE, TITLE_FONTS, MAX_DAYS, MAX_BLOCKS } from '../constants'
+import { toDateInputValue, formatDayLabel } from '../utils/date'
+import { PLATFORMS, PlatformIcon } from './PlatformIcons'
 
 function Section({ title, children }) {
   return (
@@ -22,7 +23,135 @@ function Field({ label, children }) {
 const inputCls =
   'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-300'
 
-export default function Editor({ state, setState, rows, updateRow, dates, onAvatarUpload }) {
+// 1つの配信ブロックの編集UI
+function BlockEditor({ block, rowIndex, blockIndex, blockCount, updateBlock, removeBlock }) {
+  const togglePlatform = (pid) => {
+    const has = block.platforms.includes(pid)
+    const next = has ? block.platforms.filter((p) => p !== pid) : [...block.platforms, pid]
+    updateBlock(rowIndex, blockIndex, { platforms: next })
+  }
+
+  return (
+    <div className="rounded-lg bg-slate-50 p-2.5">
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-xs font-bold text-slate-500">配信 {blockIndex + 1}</span>
+        {blockCount > 1 && (
+          <button
+            type="button"
+            onClick={() => removeBlock(rowIndex, blockIndex)}
+            className="text-xs font-bold text-rose-500 hover:text-rose-600"
+          >
+            削除 ✕
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-2">
+          <Field label="配信時間">
+            <input
+              type="text"
+              placeholder="19:00"
+              className={inputCls}
+              value={block.time}
+              onChange={(e) => updateBlock(rowIndex, blockIndex, { time: e.target.value })}
+            />
+          </Field>
+          <div className="col-span-2">
+            <Field label="配信内容">
+              <input
+                type="text"
+                placeholder="ドラクエ10"
+                className={inputCls}
+                value={block.content}
+                onChange={(e) => updateBlock(rowIndex, blockIndex, { content: e.target.value })}
+              />
+            </Field>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="補足1行目">
+            <input
+              type="text"
+              placeholder="（短め配信）"
+              className={inputCls}
+              value={block.note1}
+              onChange={(e) => updateBlock(rowIndex, blockIndex, { note1: e.target.value })}
+            />
+          </Field>
+          <Field label="補足2行目">
+            <input
+              type="text"
+              className={inputCls}
+              value={block.note2}
+              onChange={(e) => updateBlock(rowIndex, blockIndex, { note2: e.target.value })}
+            />
+          </Field>
+        </div>
+
+        {/* 配信サイト */}
+        <div>
+          <span className="mb-1 block text-xs font-medium text-slate-500">
+            配信サイト（複数選択で同時配信）
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            {PLATFORMS.map((p) => {
+              const active = block.platforms.includes(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => togglePlatform(p.id)}
+                  className={`flex items-center gap-1 rounded-full border px-2 py-1 text-xs font-medium transition ${
+                    active
+                      ? 'border-slate-800 bg-white text-slate-800'
+                      : 'border-slate-200 bg-white text-slate-400 opacity-60'
+                  }`}
+                >
+                  <PlatformIcon id={p.id} size={16} />
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 強調色 */}
+        <div className="flex flex-wrap items-center gap-3 pt-0.5">
+          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+            <input
+              type="checkbox"
+              checked={block.accent}
+              onChange={(e) => updateBlock(rowIndex, blockIndex, { accent: e.target.checked })}
+            />
+            文字を強調（色付き）
+          </label>
+          {block.accent && (
+            <input
+              type="color"
+              className="h-6 w-10 cursor-pointer rounded border border-slate-300"
+              value={block.accentColor}
+              onChange={(e) => updateBlock(rowIndex, blockIndex, { accentColor: e.target.value })}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function Editor({
+  state,
+  setState,
+  rows,
+  updateRow,
+  updateBlock,
+  addBlock,
+  removeBlock,
+  dates,
+  onAvatarUpload,
+}) {
   const s = state
 
   return (
@@ -147,6 +276,16 @@ export default function Editor({ state, setState, rows, updateRow, dates, onAvat
             />
           </Field>
         </div>
+        <Field label={`左右位置：${s.titleOffsetX}px`}>
+          <input
+            type="range"
+            min={-120}
+            max={220}
+            value={s.titleOffsetX}
+            className="w-full"
+            onChange={(e) => setState({ titleOffsetX: Number(e.target.value) })}
+          />
+        </Field>
         <Field label="文字色">
           <input
             type="color"
@@ -165,9 +304,7 @@ export default function Editor({ state, setState, rows, updateRow, dates, onAvat
             return (
               <div key={i} className="rounded-lg border border-slate-200 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-bold text-slate-700">
-                    {formatDayLabel(date)}
-                  </span>
+                  <span className="text-sm font-bold text-slate-700">{formatDayLabel(date)}</span>
                   <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
                     <input
                       type="checkbox"
@@ -180,65 +317,26 @@ export default function Editor({ state, setState, rows, updateRow, dates, onAvat
 
                 {!row.holiday && (
                   <div className="space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                      <Field label="配信時間">
-                        <input
-                          type="text"
-                          placeholder="19:00"
-                          className={inputCls}
-                          value={row.time}
-                          onChange={(e) => updateRow(i, { time: e.target.value })}
-                        />
-                      </Field>
-                      <div className="col-span-2">
-                        <Field label="配信内容">
-                          <input
-                            type="text"
-                            placeholder="ドラクエ10"
-                            className={inputCls}
-                            value={row.content}
-                            onChange={(e) => updateRow(i, { content: e.target.value })}
-                          />
-                        </Field>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Field label="補足1行目">
-                        <input
-                          type="text"
-                          placeholder="（短め配信）"
-                          className={inputCls}
-                          value={row.note1}
-                          onChange={(e) => updateRow(i, { note1: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="補足2行目">
-                        <input
-                          type="text"
-                          className={inputCls}
-                          value={row.note2}
-                          onChange={(e) => updateRow(i, { note2: e.target.value })}
-                        />
-                      </Field>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                      <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={row.accent}
-                          onChange={(e) => updateRow(i, { accent: e.target.checked })}
-                        />
-                        文字を強調（色付き）
-                      </label>
-                      {row.accent && (
-                        <input
-                          type="color"
-                          className="h-6 w-10 cursor-pointer rounded border border-slate-300"
-                          value={row.accentColor}
-                          onChange={(e) => updateRow(i, { accentColor: e.target.value })}
-                        />
-                      )}
-                    </div>
+                    {row.blocks.map((block, bi) => (
+                      <BlockEditor
+                        key={bi}
+                        block={block}
+                        rowIndex={i}
+                        blockIndex={bi}
+                        blockCount={row.blocks.length}
+                        updateBlock={updateBlock}
+                        removeBlock={removeBlock}
+                      />
+                    ))}
+                    {row.blocks.length < MAX_BLOCKS && (
+                      <button
+                        type="button"
+                        onClick={() => addBlock(i)}
+                        className="w-full rounded-lg border border-dashed border-slate-300 py-1.5 text-xs font-bold text-slate-500 hover:border-rose-300 hover:text-rose-500"
+                      >
+                        ＋ 配信を追加（この日 最大{MAX_BLOCKS}件）
+                      </button>
+                    )}
                   </div>
                 )}
 
